@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>MEM кликер</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+
+/* ===== ОСНОВА ===== */
+
+body{
+    background:#f5efe6;
+    font-family:'Nunito',sans-serif;
+    text-align:center;
+    margin-top:80px;
+    color:#6b5b4d;
+    overflow-x:hidden;
+}
+
+h1{
+    font-family:'Playfair Display',serif;
+}
+
+/* ===== СЧЁТЧИК ===== */
+
+#score{
+    font-size:48px;
+    margin:20px;
+    transition:.2s;
+}
+
+.pop{
+    animation:pop .25s ease;
+}
+
+@keyframes pop{
+    50%{transform:scale(1.3);}
+}
+
+/* ===== УНИВЕРСАЛЬНЫЕ КНОПКИ ===== */
+
+button{
+    background: linear-gradient(145deg,#e8d8c4,#f0e3d3);
+    border:none;
+    padding:16px 32px;
+    font-size:18px;
+    border-radius:16px;
+    cursor:pointer;
+    margin:8px;
+    color:#6b5b4d;
+
+    box-shadow:
+        0 6px 15px rgba(0,0,0,0.1),
+        inset 0 1px 2px rgba(255,255,255,0.4);
+
+    transition:all .25s ease;
+}
+
+button:hover{
+    transform: translateY(-3px) scale(1.04);
+    box-shadow:
+        0 10px 22px rgba(0,0,0,0.15),
+        inset 0 1px 2px rgba(255,255,255,0.5);
+}
+
+button:active{
+    transform: scale(.95);
+}
+
+/* ===== ОСНОВНАЯ КНОПКА ===== */
+
+#clickBtn{
+    font-size:22px;
+    padding:20px 44px;
+    border-radius:20px;
+    position:relative;
+    overflow:hidden;
+}
+
+#clickBtn::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 60%);
+    opacity:0;
+    transition:.3s;
+}
+
+#clickBtn:hover::after{
+    opacity:1;
+}
+
+/* ===== БОКОВАЯ ПАНЕЛЬ ===== */
+
+.shopPanel{
+    position:fixed;
+    top:0;
+    right:-330px;
+    width:330px;
+    height:100%;
+    background:#efe4d4;
+    box-shadow:-5px 0 20px rgba(0,0,0,0.15);
+    padding:20px;
+    transition:.4s;
+    overflow-y:auto;
+}
+
+.shopPanel.open{
+    right:0;
+}
+
+/* ===== ВИДЕО РЕЖИМ ===== */
+
+#videoContainer{
+    position:fixed;
+    inset:0;
+    background:black;
+    display:none;
+    z-index:999;
+}
+
+#videoContainer video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+</style>
+</head>
+<body>
+
+<div id="gameUI">
+
+<h1>MEM кликер</h1>
+
+<div id="score">0</div>
+
+<button id="clickBtn" onclick="addClick()">Клик</button>
+<br>
+
+<button onclick="toggleShop()">🛒 Улучшения</button>
+<button onclick="toggleMusic()">🎵 Музыка</button>
+<button onclick="toggleSound()">🔊 Звук</button>
+
+</div>
+
+<!-- ===== МАГАЗИН ===== -->
+
+<div class="shopPanel" id="shop">
+
+<h2>Магазин</h2>
+
+<h3>Множители</h3>
+<button onclick="buyMultiplier(2,50)">x2 (50)</button>
+<button onclick="buyMultiplier(3,150)">x3 (150)</button>
+<button onclick="buyMultiplier(5,400)">x5 (400)</button>
+
+<h3>Автокликер</h3>
+<button onclick="buyAuto(1,200)">+1 / сек (200)</button>
+<button onclick="buyAuto(5,800)">+5 / сек (800)</button>
+
+<h3>Кастомизация</h3>
+<button onclick="buyStyle('round',250)">Круглая (250)</button>
+<button onclick="buyStyle('glow',350)">Свечение (350)</button>
+<button onclick="buyStyle('big',500)">Большая (500)</button>
+<button onclick="buyStyle('rainbow',700)">Радужная (700)</button>
+
+<h3>Особое</h3>
+<button onclick="buyParty(1000)">Особая награда (18+) (1000)</button>
+
+</div>
+
+<!-- ===== ВИДЕО ===== -->
+
+<div id="videoContainer">
+<video id="partyVideo" src="party.mp4"></video>
+</div>
+
+<!-- ===== АУДИО ===== -->
+
+<audio id="clickSound" src="click.mp3"></audio>
+<audio id="buySound" src="buy.mp3"></audio>
+<audio id="bgMusic" src="music.mp3" loop></audio>
+
+<script>
+
+/* ===== ПЕРЕМЕННЫЕ ===== */
+
+let score = 0;
+let multiplier = 1;
+let autoClicks = 0;
+
+let soundOn = true;
+let musicOn = false;
+
+const scoreElement = document.getElementById("score");
+const clickBtn = document.getElementById("clickBtn");
+const shop = document.getElementById("shop");
+
+const clickSound = document.getElementById("clickSound");
+const buySound = document.getElementById("buySound");
+const bgMusic = document.getElementById("bgMusic");
+
+const videoContainer = document.getElementById("videoContainer");
+const partyVideo = document.getElementById("partyVideo");
+const gameUI = document.getElementById("gameUI");
+
+/* ===== КЛИК ===== */
+
+function addClick(){
+
+    score += multiplier;
+    updateScore();
+
+    if(soundOn){
+        clickSound.currentTime = 0;
+        clickSound.play();
+    }
+}
+
+/* ===== МАГАЗИН ===== */
+
+function toggleShop(){
+    shop.classList.toggle("open");
+}
+
+function buyMultiplier(mult, price){
+
+    if(score >= price){
+        score -= price;
+        multiplier = mult;
+        purchase();
+    }
+}
+
+function buyAuto(amount, price){
+
+    if(score >= price){
+        score -= price;
+        autoClicks += amount;
+        purchase();
+    }
+}
+
+/* ===== КАСТОМИЗАЦИЯ ===== */
+
+function buyStyle(style, price){
+
+    if(score < price) return;
+
+    score -= price;
+
+    if(style === "round"){
+        clickBtn.style.borderRadius = "50px";
+    }
+
+    if(style === "glow"){
+        clickBtn.style.boxShadow = "0 0 25px #d8c6a8";
+    }
+
+    if(style === "big"){
+        clickBtn.style.transform = "scale(1.3)";
+    }
+
+    if(style === "rainbow"){
+        clickBtn.style.background =
+        "linear-gradient(45deg,#f2d6c9,#e8d8c4,#d8c6a8)";
+    }
+
+    purchase();
+}
+
+/* ===== ПОКУПКА ===== */
+
+function purchase(){
+
+    updateScore();
+
+    if(soundOn){
+        buySound.currentTime = 0;
+        buySound.play();
+    }
+}
+
+/* ===== АВТОКЛИК ===== */
+
+setInterval(()=>{
+    if(autoClicks > 0){
+        score += autoClicks;
+        updateScore();
+    }
+},1000);
+
+/* ===== МУЗЫКА И ЗВУК ===== */
+
+function toggleMusic(){
+
+    musicOn = !musicOn;
+
+    if(musicOn){
+        bgMusic.play();
+    }else{
+        bgMusic.pause();
+    }
+}
+
+function toggleSound(){
+    soundOn = !soundOn;
+}
+
+/* ===== СПЕЦ СОБЫТИЕ ===== */
+
+function buyParty(price){
+
+    if(score < price) return;
+
+    score -= price;
+    updateScore();
+
+    gameUI.style.display = "none";
+    shop.style.display = "none";
+    videoContainer.style.display = "block";
+
+    partyVideo.play();
+
+    partyVideo.onended = ()=>{
+        window.close();
+    }
+}
+
+/* ===== ОБНОВЛЕНИЕ UI ===== */
+
+function updateScore(){
+
+    scoreElement.textContent = score;
+
+    scoreElement.classList.remove("pop");
+    void scoreElement.offsetWidth;
+    scoreElement.classList.add("pop");
+}
+
+</script>
+
+</body>
+</html>
